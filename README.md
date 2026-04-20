@@ -8,4 +8,4 @@ my study ai-project
 
 # 20260420
 
-完成mini-rag_v0.1.js版本
+1.完成mini-rag_v0.1.js版本2.增加gitee仓库同步推送到github仓库的镜像仓库配置功能
