@@ -9,14 +9,14 @@
 
 // // ===== 1. 准备知识库 =====
 // const knowledgeBase = [
-//   '谢壮是一名拥有13年软件研发经验的项目经理，其中5年为专职项目管理经验。',
-//   '谢壮主导过7个以上项目的全生命周期交付，项目准时交付率达到95%。',
-//   '谢壮擅长跨职能团队协调，最多协调过8类职能角色。',
-//   '谢壮的客户需求转化准确率超过90%，客户满意度从70%提升至95%。',
-//   '谢壮通过架构优化与云存储策略，为项目节省超30万元成本。',
-//   '谢壮熟练运用Vue、Angular、Node.js技术栈，深度参与AI模型整合与架构设计。',
-//   '谢壮在AI视频二创平台项目中，推动视频处理效率提升35%，存储成本降低17%。',
-//   '谢壮目前系统备考PMP认证，具备持续学习与快速迭代的管理思维。'
+//   '阿斑是一名拥有13年软件研发经验的项目经理，其中5年为专职项目管理经验。',
+//   '阿斑主导过7个以上项目的全生命周期交付，项目准时交付率达到95%。',
+//   '阿斑擅长跨职能团队协调，最多协调过8类职能角色。',
+//   '阿斑的客户需求转化准确率超过90%，客户满意度从70%提升至95%。',
+//   '阿斑通过架构优化与云存储策略，为项目节省超30万元成本。',
+//   '阿斑熟练运用Vue、Angular、Node.js技术栈，深度参与AI模型整合与架构设计。',
+//   '阿斑在AI视频二创平台项目中，推动视频处理效率提升35%，存储成本降低17%。',
+//   '阿斑目前系统备考PMP认证，具备持续学习与快速迭代的管理思维。'
 // ]
 
 // // ========2.向量化知识库==========
@@ -46,25 +46,13 @@
 
 import OpenAI from 'openai'
 import dotenv from 'dotenv'
+import { knowledgeBase } from './knowledge-base.js'
 dotenv.config()
 
 const client = new OpenAI({
   apiKey: process.env.QWEN_API_KEY,
   baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
 })
-
-// ===== 知识库 =====
-const knowledgeBase = [
-  '谢壮是一名拥有13年软件研发经验的项目经理，其中5年为专职项目管理经验。',
-  '谢壮主导过7个以上项目的全生命周期交付，项目准时交付率达到95%。',
-  '谢壮擅长跨职能团队协调，最多协调过8类职能角色。',
-  '谢壮的客户需求转化准确率超过90%，客户满意度从70%提升至95%。',
-  '谢壮通过架构优化与云存储策略，为项目节省超30万元成本。',
-  //'谢壮熟练运用Vue、Angular、Node.js技术栈，深度参与AI模型整合与架构设计。',
-  '谢壮的技术技能包括Vue、Angular、Node.js前端框架和Node.js后端开发',
-  '谢壮在AI视频二创平台项目中，推动视频处理效率提升35%，存储成本降低17%。',
-  '谢壮目前系统备考PMP认证，具备持续学习与快速迭代的管理思维。'
-]
 
 // ===== 1. getEmbedding =====
 async function getEmbedding(text) {
@@ -105,7 +93,7 @@ function cosine(vecA, vecB) {
 }
 
 // ===== 3. retrieve =====
-async function retrieve(query, docs, topK = 3) {
+async function retrieve(query, docs, topK = 20) {
   // TODO:
   // 1. 把 query 转成向量 一维数组
   // 2. 把每条 doc 转成向量 二维数组
@@ -129,7 +117,44 @@ async function retrieve(query, docs, topK = 3) {
   if (scored.length === 0 || scored[0].score < 0.3) {
     return []
   }
-  return scored.slice(0, topK) // 取前 topK 条
+  const roughlyResult = scored.slice(0, topK)
+  return rerank(
+    query,
+    roughlyResult.map((item) => item.doc)
+  )
+  // return scored.slice(0, topK) // 取前 topK 条
+}
+
+async function rerank(query, documents, top_n = 3) {
+  // 调用 Qwen Rerank API
+  // 传入：问题 + 候选文档列表
+  // 返回：重新排序后的文档（按相关性从高到低）
+  const apiKey = process.env.QWEN_API_KEY
+  const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gte-rerank-v2',
+      input: {
+        query,
+        documents
+      },
+      parameters: {
+        return_documents: true,
+        top_n: 3
+      }
+    })
+  })
+  const res = await response.json()
+  // return res.output.results
+  // ⬇️ 关键：提取文本内容
+  return res.output.results.map((r) => ({
+    text: r.document.text,
+    score: r.relevance_score
+  }))
 }
 
 // ===== 4. generate =====
@@ -142,10 +167,9 @@ async function generate(query, contextDocs) {
   // 4. 返回 LLM 的回答文字
   if (contextDocs.length == 0) return '抱歉，根据现有知识库无法回答这个问题。'
   // 将文档片段进行拼接
-  const contextText = contextDocs.map((c) => c.doc).join('\n')
+  const contextText = contextDocs.map((c) => c.text).join('\n')
   // 构造prompt
-  const prompt = `你是问答助手。根据以下参考资料回答用户问题。
-  如果参考资料中没有相关信息，请诚实说"我不知道"，不要编造。
+  const prompt = `根据以下参考资料回答用户问题。如果信息不足，直接说「我不知道」，不要编造。
   参考资料：${contextText}`
   const response = await client.chat.completions.create({
     model: 'qwen-plus',
@@ -164,10 +188,7 @@ async function rag(query) {
   // 2. 调用 generate() 传入 query 和相关文档
   // 3. 返回最终回答
   const fragment = await retrieve(query, knowledgeBase)
-  console.log(
-    '📄 检索结果：',
-    fragment.map((f) => `${(f.score * 100).toFixed(1)}% → ${f.doc}`)
-  )
+  console.log('📄 检索结果：', fragment.map((f) => `${(f.score * 100).toFixed(1)}% → ${f.text}`).join('\n'))
   const finalAnswer = await generate(query, fragment)
   return finalAnswer
 }
@@ -175,11 +196,11 @@ async function rag(query) {
 // ===== 主函数 =====
 async function main() {
   const questions = [
-    '谢壮的项目管理经验怎么样？',
-    '谢壮会什么技术？',
-    '谢壮有没有PMP证书？',
-    '谢壮的薪资期望是多少？', // 知识库里没有
-    '谢壮对求职企业有什么期望吗？'
+    '阿斑的项目管理经验怎么样？',
+    '阿斑会什么技术？',
+    '阿斑有没有PMP证书？',
+    '阿斑的薪资期望是多少？', // 知识库里没有
+    '阿斑对求职企业有什么期望吗？'
   ]
 
   for (const q of questions) {
