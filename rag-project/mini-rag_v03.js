@@ -1,53 +1,7 @@
-// import OpenAI from 'openai'
-// import dotenv from 'dotenv'
-// dotenv.config()
-
-// const client = new OpenAI({
-//   apiKey: process.env.QWEN_API_KEY,
-//   baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-// })
-
-// // ===== 1. 准备知识库 =====
-// const knowledgeBase = [
-//   '阿斑是一名拥有13年软件研发经验的项目经理，其中5年为专职项目管理经验。',
-//   '阿斑主导过7个以上项目的全生命周期交付，项目准时交付率达到95%。',
-//   '阿斑擅长跨职能团队协调，最多协调过8类职能角色。',
-//   '阿斑的客户需求转化准确率超过90%，客户满意度从70%提升至95%。',
-//   '阿斑通过架构优化与云存储策略，为项目节省超30万元成本。',
-//   '阿斑熟练运用Vue、Angular、Node.js技术栈，深度参与AI模型整合与架构设计。',
-//   '阿斑在AI视频二创平台项目中，推动视频处理效率提升35%，存储成本降低17%。',
-//   '阿斑目前系统备考PMP认证，具备持续学习与快速迭代的管理思维。'
-// ]
-
-// // ========2.向量化知识库==========
-
-// async function getEmbedding(text) {
-//   const response = await client.embeddings.create({
-//     model: 'text-embedding-v3',
-//     input: text,
-//     dimensions: 1024
-//   })
-//   return response.data[0].embedding
-// }
-
-// function cosine(a, b) {
-//   let dot = 0,
-//     normA = 0,
-//     normB = 0
-//   for (let i = 0; i < a.length; i++) {
-//     dot += a[i] * b[i]
-//     normA += a[i] * a[i]
-//     normB += b[i] * b[i]
-//   }
-//   return dot / (Math.sqrt(normA) * Math.sqrt(normB))
-// }
-
-//====3.检索: 找到和问题最相关的文档======
-
 import OpenAI from 'openai'
-// import dotenv from 'dotenv'
+import dotenv from 'dotenv'
 import { knowledgeBase } from './knowledge-base.js'
-// dotenv.config()
+dotenv.config()
 
 const client = new OpenAI({
   apiKey: process.env.QWEN_API_KEY,

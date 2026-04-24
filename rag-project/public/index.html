@@ -1,0 +1,73 @@
+<!-- public/index.html -->
+<style>
+    .display{
+            position: absolute;
+            background-color: #87c3de;
+            width: 80%;
+            height: 100%;
+    }
+    .userPop{
+        display: block;
+        float: right;
+        margin-right: 50px;
+        margin-top: 39px;
+        background: lightgreen;
+        color: black;
+        font-size: 14px;
+    }
+    .answerPop{
+        display: block;
+        float: left;
+        margin-left: 50px;
+        margin-top: 60px;
+        background: rgb(238, 163, 144);
+        color: black;
+        font-size: 14px;
+    }
+
+</style>
+
+<div id="app">
+  <div id="chat"></div>
+  <!-- 对话区域 -->
+  <div id="input-area">
+    <input id="msg" placeholder="输入问题..." />
+    <button id="send">发送</button>
+  </div>
+  <div id="displayArea" class="display">
+     <span class="userPop"></span>
+     <span class="answerPop"></span>
+  </div>
+</div>
+
+<script>
+  const chat = document.getElementById('chat')
+  const msg = document.getElementById('msg')
+  const send = document.getElementById('send')
+  const disWindow = document.getElementById('displayArea')
+  let convId = null
+
+  send.addEventListener('click', () => {
+    const text = msg.value.trim()
+    if (!text) return
+    msg.value = ''
+    fetch('http://localhost:3000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: text ,conversationId: convId})
+    })
+    .then(res => res.json()) // 把响应转成 JSON
+    .then(data => {
+    console.log(data) // data.answer 就是回答
+    let userPopHtmlStr = `<span class='userPop'>${text}</span>`
+    let answerPopHtmlStr = `<span class='answerPop'>${data.answer}</span>`
+    disWindow.innerHTML += userPopHtmlStr + answerPopHtmlStr
+    convId = data.conversationId
+    })
+
+    // 1. 渲染用户气泡
+    // 2. 调 /api/chat，body = { query: text, conversationId: convId }
+    // 3. 拿到回答后渲染助手气泡
+    // 4. 记住 convId
+  })
+</script>

@@ -19,3 +19,8 @@ my study ai-project
 1.完成Rerank功能
 使用gte-rerank-v2重排接口，此接口无法兼容使用OpaiAPI库，只能使用fetch库进行单独请求，2.重排接口返回的数据格式与qwen-plus返回的数据格式和字段不同，在未使用重排接口时，粗排片段的数据结构字段为自定义，但在粗排之后需要进行重排操作，数据会流经te-rerank-v2重排接口，数据结构和字段名称会改变，所以需要注意配合修改
 3.system prompt需要修改，以便更好的引导LLM 4.去除环境变量文件，将API Key保存在本地系统环境变量
+
+# 20260424
+1.增加多轮对话，增加历史信息记录
+2.使用express，增加chat/api接口
+3.增加测试页面public/index.html
